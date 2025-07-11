@@ -3,12 +3,12 @@
 
 `go-cap` 是 [@cap.js/server](https://github.com/tiagorangel1/cap) 的 Go 语言实现版
 
-> **Notice**
-> 此包内部依赖 `github.com/redis/go-redis/v9`, 若使用 Redis 需要 `v6.2.0` 以上版本
+> **Notice**  
+> 此包内部依赖 `github.com/redis/go-redis/v9`, 若使用 Redis 需要 `v6.2.0` 以上版本  
 
-> **Reference**
-> [Cap](https://github.com/tiagorangel1/cap) 源仓库
-> [cap_go_server](https://github.com/samwafgo/cap_go_server) 另一个 Go 实现
+> **Reference**  
+> [Cap](https://github.com/tiagorangel1/cap) 源仓库  
+> [cap_go_server](https://github.com/samwafgo/cap_go_server) 另一个 Go 实现  
 
 ## Quick Start
 
@@ -33,7 +33,7 @@ package main
 import (
 	"encoding/json"
 	"net/http"
-    "fmt"
+	"fmt"
 
 	gocap "github.com/ackcoder/go-cap"
 )
