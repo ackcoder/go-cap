@@ -31,7 +31,6 @@ HTTP 服务示例
 package main
 
 import (
-	"encoding/json"
 	"net/http"
 	"fmt"
 
@@ -41,46 +40,9 @@ import (
 func main() {
 	c := gocap.New()
 
-	http.HandleFunc("/challenge", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		challenge, _ := c.CreateChallenge(r.Context())
-		json.NewEncoder(w).Encode(challenge)
-	})
-	http.HandleFunc("/redeem", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		var params gocap.SolutionParams
-		_ = json.NewDecoder(r.Body).Decode(&params)
-
-		res, err := c.RedeemChallenge(r.Context(), params.Token, params.Solutions)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-		}
-		json.NewEncoder(w).Encode(map[string]any{
-			"success": true,
-			"token":  res.Token,
-			"expires": res.Expires,
-		})
-	})
-	http.HandleFunc("/validate", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			return
-		}
-		w.Header().Set("Content-Type", "application/json")
-		var params struct {
-			Token string `json:"token"`
-		}
-		_ = json.NewDecoder(r.Body).Decode(&params)
-
-		json.NewEncoder(w).Encode(map[string]any{
-			"success": c.ValidateToken(r.Context(), params.Token),
-		})
-	})
+	http.HandleFunc("/challenge", c.HandleCreateChallenge())
+	http.HandleFunc("/redeem", c.HandleRedeemChallenge())
+	http.HandleFunc("/validate", c.HandleValidateToken())
 
     fmt.Println("go-cap server start...")
     http.ListenAndServe(":8099", nil)
@@ -107,6 +69,10 @@ func main() {
 
 **WithTokenVerifyOnce(isOnce bool)**  
 配置验证令牌检查次数, 默认一次性, 比较完即删除  
+
+**WithLimiterParams(rps, burst int)**  
+配置限流器参数, 默认10次/秒、最大突发50次  
+仅在 Handlexxx 方法调用时生效, 每个 Handlexxx 方法独立计算限流  
 
 ## License
 

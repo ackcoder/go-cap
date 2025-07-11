@@ -11,6 +11,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/time/rate"
 )
 
 const (
@@ -24,6 +26,9 @@ const (
 	defaultTokenIdSize     = 8
 	defaultTokenExpires    = 20 * time.Minute
 	defaultTokenVerifyOnce = true
+
+	defaultHttpHandleLimitRPS   = 10
+	defaultHttpHandleLimitBurst = 50
 )
 
 var (
@@ -46,10 +51,14 @@ type (
 		tokenExpires    time.Duration //验证令牌过期时间. 默认20分钟
 		tokenVerifyOnce bool          //验证令牌一次性检查. 默认true
 
+		limiterRPS   int //限流器每秒通过数. 默认10次/秒
+		limiterBurst int //限流器最大突发容量数. 默认50次突发
+
+		limiter [3]*rate.Limiter //令牌桶限流器组, 在使用 Handlexxx 方法时生效
 		storage Storage
 	}
 
-	// 返回给前端组件的质询数据内容
+	// 质询数据内容
 	ChallengeData struct {
 		Challenge ChallengeItem `json:"challenge"`
 		Expires   int64         `json:"expires"` //过期时间,秒级时间戳
@@ -60,17 +69,26 @@ type (
 		S int `json:"s"` //质询大小
 		D int `json:"d"` //质询难度
 	}
-
-	// 返回给前端组件的验证令牌内容
+	// 验证令牌内容
 	TokenData struct {
-		Expires int64  `json:"expires"` //过期时间,秒级时间戳
-		Token   string `json:"token"`   //验证令牌
+		Expires int64  `json:"expires,omitzero"` //过期时间,秒级时间戳
+		Token   string `json:"token,omitzero"`   //验证令牌
 	}
 
-	// 来自前端组件传入的解方案内容
-	SolutionParams struct {
-		Token     string  `json:"token"`     //质询令牌
-		Solutions []int64 `json:"solutions"` //质询解方案组
+	// 前端组件传入的参数
+	//
+	// 注: 用于 RedeemChallenge() 或 ValidateToken()
+	VerificationParams struct {
+		Token     string  `json:"token"`              //质询令牌
+		Solutions []int64 `json:"solutions,omitzero"` //质询解方案组
+	}
+	// 返回前端组件的结果
+	//
+	// 注: 来自 RedeemChallenge() 或 ValidateToken()
+	VerificationResult struct {
+		*TokenData
+		Success bool   `json:"success"`
+		Message string `json:"message,omitzero"`
 	}
 )
 
@@ -87,12 +105,22 @@ func New(opts ...CapOption) *Cap {
 		tokenExpires:    defaultTokenExpires,
 		tokenVerifyOnce: defaultTokenVerifyOnce,
 
+		limiterRPS:   defaultHttpHandleLimitRPS,
+		limiterBurst: defaultHttpHandleLimitBurst,
+
 		storage: NewMemoryStorage(),
 	}
 	for _, opt := range opts {
 		opt(c)
 	}
 
+	if c.limiterRPS+c.limiterBurst > 0 {
+		c.limiter = [3]*rate.Limiter{
+			rate.NewLimiter(rate.Every(time.Second/time.Duration(c.limiterRPS)), c.limiterBurst),
+			rate.NewLimiter(rate.Every(time.Second/time.Duration(c.limiterRPS)), c.limiterBurst),
+			rate.NewLimiter(rate.Every(time.Second/time.Duration(c.limiterRPS)), c.limiterBurst),
+		}
+	}
 	return c
 }
 

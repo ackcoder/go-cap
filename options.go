@@ -56,3 +56,16 @@ func WithTokenVerifyOnce(isOnce bool) CapOption {
 		c.tokenVerifyOnce = isOnce
 	}
 }
+
+// 配置限流器参数 (调用 Handlexxx 方法时生效)
+//   - {rps} 每秒通过数. 默认10次/秒. 都置为0时关闭限流
+//   - {burst} 最大突发容量. 默认50次. 都置为0时关闭限流
+func WithLimiterParams(rps, burst int) CapOption {
+	return func(c *Cap) {
+		if rps < 0 || burst < 0 || rps > burst {
+			return
+		}
+		c.limiterRPS = rps
+		c.limiterBurst = burst
+	}
+}
