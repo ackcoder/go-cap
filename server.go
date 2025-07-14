@@ -8,7 +8,7 @@ import (
 // HandleCreateChallenge 创建质询 Http Handle 封装
 func (c *Cap) HandleCreateChallenge() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !c.limiter[0].Allow() {
+		if c.limiter[0] != nil && !c.limiter[0].Allow() {
 			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
 			return
 		}
@@ -30,7 +30,7 @@ func (c *Cap) HandleCreateChallenge() http.HandlerFunc {
 // HandleRedeemChallenge 工作量证明兑换验证令牌 Http Handle 封装
 func (c *Cap) HandleRedeemChallenge() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !c.limiter[1].Allow() {
+		if c.limiter[1] != nil && !c.limiter[1].Allow() {
 			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
 			return
 		}
@@ -61,7 +61,7 @@ func (c *Cap) HandleRedeemChallenge() http.HandlerFunc {
 // HandleValidateToken 检查验证令牌 Http Handle 封装
 func (c *Cap) HandleValidateToken() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if !c.limiter[2].Allow() {
+		if c.limiter[2] != nil && !c.limiter[2].Allow() {
 			http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
 			return
 		}
