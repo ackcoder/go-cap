@@ -32,10 +32,11 @@ const (
 )
 
 var (
-	ErrInvalidChallenge = errors.New("invalid challenge body")        //非法质询参数
-	ErrChallengeExpired = errors.New("challenge expired")             //质询令牌过期
-	ErrInvalidSolutions = errors.New("invalid solutions")             //非法解方案组参数
-	ErrGenerateFailed   = errors.New("generate random string failed") //生成随机串失败
+	ErrInvalidChallenge  = errors.New("invalid challenge body")        //非法质询参数
+	ErrChallengeExpired  = errors.New("challenge expired")             //质询令牌过期
+	ErrInvalidSolutions  = errors.New("invalid solutions")             //非法解方案组参数
+	ErrGenerateFailed    = errors.New("generate random string failed") //生成随机串失败
+	ErrStorageNotDefined = errors.New("storage not defined")           //未定义存储实例
 )
 
 type (
@@ -126,6 +127,10 @@ func New(opts ...CapOption) *Cap {
 
 // CreateChallenge 创建质询数据
 func (c *Cap) CreateChallenge(ctx context.Context) (*ChallengeData, error) {
+	if c.storage == nil {
+		return nil, ErrStorageNotDefined
+	}
+
 	data := &ChallengeData{
 		Challenge: ChallengeItem{
 			C: c.challengeCount,
@@ -150,6 +155,9 @@ func (c *Cap) CreateChallenge(ctx context.Context) (*ChallengeData, error) {
 //   - {token} 质询令牌, 即 ChallengeData.Token
 //   - {solutions} 工作量证明/解方案组
 func (c *Cap) RedeemChallenge(ctx context.Context, token string, solutions []int64) (*TokenData, error) {
+	if c.storage == nil {
+		return nil, ErrStorageNotDefined
+	}
 	if token == "" || len(token) != c.challengeTokenSize {
 		return nil, ErrInvalidChallenge
 	}
@@ -205,6 +213,9 @@ func (c *Cap) RedeemChallenge(ctx context.Context, token string, solutions []int
 // ValidateToken 检查验证令牌
 //   - {token} 验证令牌, 即 TokenData.Token
 func (c *Cap) ValidateToken(ctx context.Context, token string) bool {
+	if c.storage == nil {
+		return false //未定义存储实例
+	}
 	parts := strings.Split(token, ":")
 	if len(parts) != 2 {
 		return false //验证令牌入参错误
